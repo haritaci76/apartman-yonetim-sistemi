@@ -77,18 +77,19 @@ const [formData, setFormData] = useState({
         if (formData.unit_type === 'Mesken') {
           // MESKEN için
           if (formData.floor !== '' && formData.unit_no) {
-            const unitData = {
-              block_id: formData.block_id,
-              block_name: blockName,
-              floor: parseInt(formData.floor),
-              unit_no: formData.unit_no,
-              type: 'Mesken',
-              owner_id: ownerId,
-              owner_name: `${formData.first_name} ${formData.last_name}`,
-              owner_phone: formData.phone,
-              street_number: null,
-              door_number: null
-            };
+           const unitData = {
+  block_id: formData.block_id,
+  block_name: blockName,
+  floor: parseInt(formData.floor),
+  unit_no: formData.unit_no,
+  area: parseFloat(formData.area) || 0,  // ← EKLE
+  type: 'Mesken',
+  owner_id: ownerId,
+  owner_name: `${formData.first_name} ${formData.last_name}`,
+  owner_phone: formData.phone,
+  street_number: null,
+  door_number: null
+};
 
             // Var mı kontrol et
             const {  existing } = await supabase
