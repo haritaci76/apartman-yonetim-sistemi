@@ -73,40 +73,71 @@ export default function MaliklerPage() {
         if (data) ownerId = data[0].id;
       }
 
-      if (formData.block_id && ownerId) {
-        const block = blocks.find(b => b.id === formData.block_id);
-        const blockName = block?.name?.toUpperCase() || '';
+if (formData.block_id && ownerId) {
+  const block = blocks.find(b => b.id === formData.block_id);
+  const blockName = block?.name?.toUpperCase() || '';
 
-        if (formData.unit_type === 'Mesken' && formData.floor && formData.unit_no) {
-          const unitData = {
-  block_id: formData.block_id, block_name: blockName,
-  floor: parseInt(formData.floor), unit_no: formData.unit_no,
-  type: 'Mesken',
-  owner_id: ownerId, owner_name: `${formData.first_name} ${formData.last_name}`,
-  owner_phone: formData.phone
-};
-          const { data: existing } = await supabase.from("units").select("id").eq("block_name", blockName).eq("floor", unitData.floor).eq("unit_no", unitData.unit_no).eq("type", "Mesken");
-          if (existing?.length) {
-            await supabase.from("units").update({ owner_id: ownerId, owner_name: unitData.owner_name, owner_phone: unitData.owner_phone }).eq("id", existing[0].id);
-          } else {
-            await supabase.from("units").insert([unitData]);
-          }
-        } else if (formData.unit_type === 'İş Yeri' && formData.street_number && formData.door_number) {
-          const unitData = {
-            block_id: formData.block_id, block_name: blockName,
-            floor: 0, unit_no: `Dükkan${formData.door_number}`, type: 'İş Yeri',
-            street_number: formData.street_number.toUpperCase(), door_number: formData.door_number,
-            owner_id: ownerId, owner_name: `${formData.first_name} ${formData.last_name}`,
-            owner_phone: formData.phone
-          };
-          const { data: existing } = await supabase.from("units").select("id").eq("block_name", blockName).eq("street_number", unitData.street_number).eq("door_number", unitData.door_number).eq("type", "İş Yeri");
-          if (existing?.length) {
-            await supabase.from("units").update({ owner_id: ownerId, owner_name: unitData.owner_name, owner_phone: unitData.owner_phone }).eq("id", existing[0].id);
-          } else {
-            await supabase.from("units").insert([unitData]);
-          }
-        }
-      }
+  if (formData.unit_type === 'Mesken' && formData.floor && formData.unit_no) {
+    // Mesken kaydı (mevcut kod)
+    const unitData = {
+      block_id: formData.block_id, block_name: blockName,
+      floor: parseInt(formData.floor), unit_no: formData.unit_no,
+      type: 'Mesken',
+      owner_id: ownerId, owner_name: `${formData.first_name} ${formData.last_name}`,
+      owner_phone: formData.phone
+    };
+    const {  existing } = await supabase.from("units").select("id").eq("block_name", blockName).eq("floor", unitData.floor).eq("unit_no", unitData.unit_no).eq("type", "Mesken");
+    if (existing?.length) {
+      await supabase.from("units").update({ owner_id: ownerId, owner_name: unitData.owner_name, owner_phone: unitData.owner_phone }).eq("id", existing[0].id);
+    } else {
+      await supabase.from("units").insert([unitData]);
+    }
+  } else if (formData.unit_type === 'İş Yeri' && formData.street_number && formData.door_number) {
+    // İş yeri kaydı (mevcut kod)
+    const unitData = {
+      block_id: formData.block_id, block_name: blockName,
+      floor: 0, unit_no: `Dükkan${formData.door_number}`, type: 'İş Yeri',
+      street_number: formData.street_number.toUpperCase(), door_number: formData.door_number,
+      owner_id: ownerId, owner_name: `${formData.first_name} ${formData.last_name}`,
+      owner_phone: formData.phone
+    };
+    const {  existing } = await supabase.from("units").select("id").eq("block_name", blockName).eq("street_number", unitData.street_number).eq("door_number", unitData.door_number).eq("type", "İş Yeri");
+    if (existing?.length) {
+      await supabase.from("units").update({ owner_id: ownerId, owner_name: unitData.owner_name, owner_phone: unitData.owner_phone }).eq("id", existing[0].id);
+    } else {
+      await supabase.from("units").insert([unitData]);
+    }
+  } else if (['Kapıcı Dairesi', 'Yönetim Odası', 'Kargo Odası'].includes(formData.unit_type)) {
+    // ÖZEL BİRİMLER
+    let floorNum = 0;
+    let unitCode = '';
+    
+    if (formData.unit_type === 'Kapıcı Dairesi') {
+      floorNum = -1;
+      unitCode = 'KPD';
+    } else if (formData.unit_type === 'Yönetim Odası') {
+      floorNum = 0;
+      unitCode = 'YNT';
+    } else if (formData.unit_type === 'Kargo Odası') {
+      floorNum = 0;
+      unitCode = 'KRG';
+    }
+    
+    const unitData = {
+      block_id: formData.block_id, block_name: blockName,
+      floor: floorNum, unit_no: unitCode, type: formData.unit_type,
+      owner_id: ownerId, owner_name: `${formData.first_name} ${formData.last_name}`,
+      owner_phone: formData.phone, area: 0
+    };
+    
+    const {  existing } = await supabase.from("units").select("id").eq("block_name", blockName).eq("type", formData.unit_type);
+    if (existing?.length) {
+      await supabase.from("units").update({ owner_id: ownerId, owner_name: unitData.owner_name, owner_phone: unitData.owner_phone }).eq("id", existing[0].id);
+    } else {
+      await supabase.from("units").insert([unitData]);
+    }
+  }
+}
       alert("✅ Kaydedildi!");
       resetForm();
       fetchData();
@@ -185,10 +216,17 @@ export default function MaliklerPage() {
                   
                   <div className="mb-3">
                     <label className="block text-sm font-medium mb-1">Blok *</label>
-                    <select required className="w-full px-4 py-2 border rounded-lg" value={formData.block_id} onChange={(e) => setFormData({...formData, block_id: e.target.value})}>
-                      <option value="">Seçiniz...</option>
-                      {blocks.map((b) => <option key={b.id} value={b.id}>{b.name} Blok</option>)}
-                    </select>
+                  <select required className="w-full px-4 py-2 border rounded-lg" value={formData.unit_type} onChange={(e) => {
+  const newType = e.target.value;
+  setFormData(prev => ({ ...prev, unit_type: newType, floor: '', unit_no: '', street_number: '', door_number: '' }));
+  setAvailableUnits([]);
+}}>
+  <option value="Mesken">🏠 Mesken (Daire)</option>
+  <option value="İş Yeri">🏪 İş Yeri (Dükkan)</option>
+  <option value="Kapıcı Dairesi">🏡 Kapıcı Dairesi</option>
+  <option value="Yönetim Odası">🏢 Yönetim Odası</option>
+  <option value="Kargo Odası">📦 Kargo Odası</option>
+</select>
                   </div>
 
                   <div className="mb-3">
@@ -251,6 +289,21 @@ export default function MaliklerPage() {
                       </div>
                     </div>
                   )}
+
+{/* Özel Birimler - Sadece Bilgi */}
+{(formData.unit_type === 'Kapıcı Dairesi' || formData.unit_type === 'Yönetim Odası' || formData.unit_type === 'Kargo Odası') && formData.block_id && (
+  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+    <div className="flex items-center gap-2 text-purple-800">
+      <span className="text-2xl">
+        {formData.unit_type === 'Kapıcı Dairesi' ? '🏡' : formData.unit_type === 'Yönetim Odası' ? '🏢' : '📦'}
+      </span>
+      <div>
+        <p className="font-bold">{formData.unit_type}</p>
+        <p className="text-sm">Bu birim otomatik olarak {blocks.find(b => b.id === formData.block_id)?.name} Bloğu'na eklenecek.</p>
+      </div>
+    </div>
+  </div>
+)}
                 </div>
 
                 <div><label className="block text-sm font-medium mb-1">Notlar</label><textarea className="w-full px-4 py-2 border rounded-lg" rows="2" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} placeholder="Ek bilgi..."></textarea></div>
