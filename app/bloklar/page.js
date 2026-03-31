@@ -10,48 +10,27 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function BloklarPage() {
   const [blocks, setBlocks] = useState([]);
+  const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ name: '', description: '' });
 
   useEffect(() => {
-    fetchBlocks();
+    fetchData();
   }, []);
 
-  async function fetchBlocks() {
-    const { data } = await supabase.from("blocks").select("*").order("name");
-    setBlocks(data || []);
+  async function fetchData() {
+    const {  blocksData } = await supabase.from("blocks").select("*").order("name");
+    
+    const statsData = {};
+    for (const block of blocksData || []) {
+      const { count } = await supabase.from("units")
+        .select("*", { count: "exact", head: true })
+        .eq("block_id", block.id);
+      statsData[block.id] = count || 0;
+    }
+
+    setBlocks(blocksData || []);
+    setStats(statsData);
     setLoading(false);
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    
-    const { error } = await supabase.from("blocks").insert([{
-      name: formData.name.toUpperCase(),
-      description: formData.description
-    }]);
-
-    if (error) {
-      alert("❌ Hata: " + error.message);
-    } else {
-      alert("✅ Blok eklendi!");
-      setFormData({ name: '', description: '' });
-      setShowForm(false);
-      fetchBlocks();
-    }
-  }
-
-  async function deleteBlock(id) {
-    if (!confirm('Bu bloğu silmek istediğinize emin misiniz?')) return;
-    
-    const { error } = await supabase.from("blocks").delete().eq('id', id);
-    if (error) {
-      alert("❌ Hata: " + error.message);
-    } else {
-      alert("✅ Blok silindi!");
-      fetchBlocks();
-    }
   }
 
   return (
@@ -64,81 +43,55 @@ export default function BloklarPage() {
         <aside className="w-64 bg-slate-800 text-white">
           <div className="p-6 border-b border-slate-700">
             <h1 className="text-2xl font-bold">🏢 SiteYönet</h1>
+            <p className="text-xs text-slate-400 mt-1">5 Blok - 90 Mesken - 15 İş Yeri</p>
           </div>
           <nav className="p-4 space-y-2">
             <Link href="/" className="block px-4 py-3 hover:bg-slate-700 rounded-lg">📊 Dashboard</Link>
             <Link href="/bloklar" className="block px-4 py-3 bg-slate-700 rounded-lg font-medium">🏢 Bloklar</Link>
             <Link href="/malikler" className="block px-4 py-3 hover:bg-slate-700 rounded-lg">👤 Malikler</Link>
             <Link href="/daireler" className="block px-4 py-3 hover:bg-slate-700 rounded-lg">🏠 Daireler</Link>
+            <Link href="/gelir-gider" className="block px-4 py-3 hover:bg-slate-700 rounded-lg">💰 Gelir/Gider</Link>
           </nav>
         </aside>
 
         <main className="flex-1 p-8 overflow-y-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">🏢 Blok Yönetimi</h1>
-            <button 
-              onClick={() => setShowForm(!showForm)}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
-            >
-              {showForm ? '❌ İptal' : '+ Yeni Blok'}
-            </button>
-          </div>
+          <h1 className="text-3xl font-bold mb-6">🏢 Blok Yönetimi</h1>
 
-          {showForm && (
-            <div className="bg-white p-6 rounded-xl shadow-lg mb-6">
-              <h2 className="text-xl font-bold mb-4">Yeni Blok Ekle</h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Blok Adı</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={1}
-                    className="w-full px-4 py-2 border rounded-lg uppercase"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value.toUpperCase()})}
-                    placeholder="A"
-                  />
+          {loading ? (
+            <div className="text-center">Yükleniyor...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+              {blocks.map((block) => (
+                <div key={block.id} className="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-6 rounded-xl shadow-lg">
+                  <div className="text-5xl font-bold mb-3">{block.name}</div>
+                  <div className="text-blue-100 text-sm mb-4">{block.description}</div>
+                  <div className="border-t border-blue-400 pt-3">
+                    <div className="text-sm">
+                      <div className="text-blue-200">Toplam Birim</div>
+                      <div className="text-2xl font-bold">{stats[block.id] || 0}</div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Açıklama</label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-2 border rounded-lg"
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    placeholder="A Blok - Ana Giriş"
-                  />
-                </div>
-                <button type="submit" className="bg-green-600 text-white px-6 py-3 rounded-lg w-full">
-                  💾 Kaydet
-                </button>
-              </form>
+              ))}
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-lg">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-bold">Bloklar ({blocks.length})</h2>
-            </div>
-            {blocks.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">Henüz blok eklenmemiş.</div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 p-6">
-                {blocks.map((block) => (
-                  <div key={block.id} className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl text-center shadow-lg relative group">
-                    <div className="text-4xl font-bold mb-2">{block.name}</div>
-                    <div className="text-sm text-blue-100">{block.description || 'Blok'}</div>
-                    <button 
-                      onClick={() => deleteBlock(block.id)}
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-red-600 p-2 rounded-lg transition"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                ))}
+          <div className="mt-8 bg-white p-6 rounded-xl shadow-lg">
+            <h2 className="text-xl font-bold mb-4">📊 Site Özeti</h2>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <div className="text-3xl font-bold text-blue-600">5</div>
+                <div className="text-sm text-gray-600">Blok</div>
               </div>
-            )}
+              <div className="bg-green-50 p-4 rounded-lg text-center">
+                <div className="text-3xl font-bold text-green-600">90</div>
+                <div className="text-sm text-gray-600">Mesken</div>
+              </div>
+              <div className="bg-orange-50 p-4 rounded-lg text-center">
+                <div className="text-3xl font-bold text-orange-600">15</div>
+                <div className="text-sm text-gray-600">İş Yeri</div>
+              </div>
+            </div>
           </div>
         </main>
       </div>
