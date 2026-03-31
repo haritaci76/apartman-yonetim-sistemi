@@ -69,13 +69,11 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold">🏢 SiteYönet</h1>
             <p className="text-xs text-slate-400 mt-1">Profesyonel Çözüm</p>
           </div>
-         <nav className="flex-1 p-4 space-y-2">
-  <a href="/" className="block px-4 py-3 bg-slate-700 rounded-lg text-white font-medium">📊 Dashboard</a>
-  <a href="/daireler" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">🏠 Daireler</a>
-  <a href="/gelir-gider" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">💰 Gelir/Gider</a>
-  <a href="/personel" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">👥 Personel</a>
-  <a href="/sayac" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">⚡ Sayaçlar</a>
-  <a href="/raporlar" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">📄 Raporlar</a>
+        <nav className="flex-1 p-4 space-y-2">
+  <Link href="/" className="block px-4 py-3 bg-slate-700 rounded-lg text-white font-medium">📊 Dashboard</Link>
+  <Link href="/daireler" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">🏠 Daireler</Link>
+  <Link href="/malikler" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">👤 Malikler</Link>
+  <Link href="/gelir-gider" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">💰 Gelir/Gider</Link>
 </nav>
           <div className="p-4 border-t border-slate-700">
             <div className="flex items-center gap-2">
