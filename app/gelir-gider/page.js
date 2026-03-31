@@ -10,8 +10,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function GelirGiderPage() {
   const [transactions, setTransactions] = useState([]);
+  const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all'); // all, income, expense
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     type: 'income',
@@ -19,26 +19,34 @@ export default function GelirGiderPage() {
     amount: '',
     description: '',
     unit_id: '',
-    expense_date: new Date().toISOString().split('T')[0]
+    payment_date: new Date().toISOString().split('T')[0]
   });
 
   const incomeCategories = ['Aidat', 'Kira', 'Bağış', 'Faiz', 'Diğer'];
   const expenseCategories = ['Personel', 'SGK', 'Enerji', 'Bakım', 'Onarım', 'Vergi', 'Sigorta', 'Kırtasiye', 'İletişim', 'Diğer'];
 
   useEffect(() => {
-    fetchTransactions();
+    fetchData();
   }, []);
 
-  async function fetchTransactions() {
-    const { data: incomeData } = await supabase
+  async function fetchData() {
+    // İşlemleri getir
+    const {  incomeData } = await supabase
       .from("income")
-      .select("*, units(no, block_name)")
+      .select("*, units(block_name, no, owner_name)")
       .order("created_at", { ascending: false });
 
-    const { data: expenseData } = await supabase
+    const {  expenseData } = await supabase
       .from("expenses")
       .select("*")
       .order("created_at", { ascending: false });
+
+    // Daireleri getir
+    const {  unitsData } = await supabase
+      .from("units")
+      .select("id, block_name, no, owner_name, owner_phone")
+      .order("block_name", { ascending: true })
+      .order("no", { ascending: true });
 
     const combined = [
       ...(incomeData || []).map(item => ({ ...item, type: 'income' })),
@@ -46,6 +54,7 @@ export default function GelirGiderPage() {
     ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     setTransactions(combined);
+    setUnits(unitsData || []);
     setLoading(false);
   }
 
@@ -58,13 +67,13 @@ export default function GelirGiderPage() {
         amount: parseFloat(formData.amount),
         description: formData.description,
         unit_id: formData.unit_id || null,
-        payment_date: formData.expense_date
+        payment_date: formData.payment_date
       }]);
 
       if (error) {
-        alert("Hata: " + error.message);
+        alert("❌ Hata: " + error.message);
       } else {
-        alert("✅ Gelir başarıyla kaydedildi!");
+        alert("✅ Gelir başarıyla kaydedildi ve resmileştirildi!");
         resetForm();
       }
     } else {
@@ -73,17 +82,17 @@ export default function GelirGiderPage() {
         sub_category: formData.description,
         amount: parseFloat(formData.amount),
         description: formData.description,
-        expense_date: formData.expense_date
+        expense_date: formData.payment_date
       }]);
 
       if (error) {
-        alert("Hata: " + error.message);
+        alert("❌ Hata: " + error.message);
       } else {
         alert("✅ Gider başarıyla kaydedildi!");
         resetForm();
       }
     }
-    fetchTransactions();
+    fetchData();
   }
 
   function resetForm() {
@@ -94,7 +103,7 @@ export default function GelirGiderPage() {
       amount: '',
       description: '',
       unit_id: '',
-      expense_date: new Date().toISOString().split('T')[0]
+      payment_date: new Date().toISOString().split('T')[0]
     });
   }
 
@@ -105,6 +114,9 @@ export default function GelirGiderPage() {
   const formatMoney = (amount) => {
     return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(amount);
   };
+
+  // Seçili daireyi bul
+  const selectedUnit = units.find(u => u.id === formData.unit_id);
 
   return (
     <>
@@ -160,15 +172,15 @@ export default function GelirGiderPage() {
           {/* Form */}
           {showForm && (
             <div className="bg-white p-6 rounded-xl shadow-lg mb-6">
-              <h2 className="text-xl font-bold mb-4">Yeni Kayıt Ekle</h2>
+              <h2 className="text-xl font-bold mb-4 text-gray-800">Yeni Kayıt Ekle</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tip</label>
                     <select
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       value={formData.type}
-                      onChange={(e) => setFormData({...formData, type: e.target.value, category: ''})}
+                      onChange={(e) => setFormData({...formData, type: e.target.value, category: '', unit_id: ''})}
                     >
                       <option value="income">💵 Gelir</option>
                       <option value="expense">💸 Gider</option>
@@ -178,7 +190,7 @@ export default function GelirGiderPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                     <select
                       required
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       value={formData.category}
                       onChange={(e) => setFormData({...formData, category: e.target.value})}
                     >
@@ -188,13 +200,50 @@ export default function GelirGiderPage() {
                       ))}
                     </select>
                   </div>
+                  
+                  {/* SADECE GELİR İSE DAİRE SEÇİMİ */}
+                  {formData.type === 'income' && (
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        🏠 Daire / Malik Seçimi (Opsiyonel)
+                      </label>
+                      <select
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                        value={formData.unit_id}
+                        onChange={(e) => setFormData({...formData, unit_id: e.target.value})}
+                      >
+                        <option value="">-- Genel Gelir (Daire Seçilmedi) --</option>
+                        {units.map((unit) => (
+                          <option key={unit.id} value={unit.id}>
+                            {unit.block_name} Blok - No: {unit.no} | {unit.owner_name || 'Belirtilmemiş'} 
+                            {unit.owner_phone ? ` (${unit.owner_phone})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedUnit && (
+                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+                          <p className="font-medium text-blue-900">📋 Seçili Daire Bilgileri:</p>
+                          <p className="text-blue-700">
+                            {selectedUnit.block_name} Blok, No: {selectedUnit.no}
+                          </p>
+                          <p className="text-blue-700">
+                            Malik: {selectedUnit.owner_name || '-'}
+                          </p>
+                          <p className="text-blue-700">
+                            Telefon: {selectedUnit.owner_phone || '-'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tutar (₺)</label>
                     <input
                       type="number"
                       step="0.01"
                       required
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       value={formData.amount}
                       onChange={(e) => setFormData({...formData, amount: e.target.value})}
                       placeholder="0.00"
@@ -205,24 +254,24 @@ export default function GelirGiderPage() {
                     <input
                       type="date"
                       required
-                      className="w-full px-4 py-2 border rounded-lg"
-                      value={formData.expense_date}
-                      onChange={(e) => setFormData({...formData, expense_date: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      value={formData.payment_date}
+                      onChange={(e) => setFormData({...formData, payment_date: e.target.value})}
                     />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama</label>
                   <textarea
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     rows="3"
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    placeholder="Detaylı açıklama..."
+                    placeholder="Örn: Ekim 2024 aidat ödemesi..."
                   ></textarea>
                 </div>
                 <button type="submit" className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 w-full font-medium">
-                  💾 Kaydet
+                  💾 Kaydet ve Resmileştir
                 </button>
               </form>
             </div>
@@ -231,7 +280,7 @@ export default function GelirGiderPage() {
           {/* İşlem Listesi */}
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             <div className="p-6 border-b">
-              <h2 className="text-xl font-bold">Son İşlemler</h2>
+              <h2 className="text-xl font-bold text-gray-800">Son İşlemler</h2>
             </div>
             {loading ? (
               <div className="p-6 text-center">Yükleniyor...</div>
@@ -242,6 +291,7 @@ export default function GelirGiderPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarih</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Daire</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tip</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Açıklama</th>
@@ -252,6 +302,15 @@ export default function GelirGiderPage() {
                   {transactions.map((t) => (
                     <tr key={t.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 text-sm">{new Date(t.created_at).toLocaleDateString('tr-TR')}</td>
+                      <td className="px-6 py-4 text-sm">
+                        {t.units ? (
+                          <span className="text-blue-600 font-medium">
+                            {t.units.block_name} Blok - No: {t.units.no}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 text-sm">
                         <span className={`px-2 py-1 rounded text-xs ${t.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                           {t.type === 'income' ? '💵 Gelir' : '💸 Gider'}
