@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 // Supabase bağlantı ayarları
 const supabaseUrl = "BURAYA_SUPABASE_URL_GELECEK";
-const supabaseKey = "BURAYA_SUPABASE_ANON_KEY_GELECEK";
+const supabaseKey = "sb_publishable_SNCUbKXAIu3jijB2hK4GIQ_o2klAx5A";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function Home() {
