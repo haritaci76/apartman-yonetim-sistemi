@@ -26,11 +26,11 @@ export default function MaliklerPage() {
   const [editingId, setEditingId] = useState(null);
   const [availableUnits, setAvailableUnits] = useState([]);
   
-  const initialForm = {
-    first_name: '', last_name: '', tc_no: '', phone: '', email: '', notes: '',
-    block_id: '', floor: '', unit_no: '', area: '', unit_type: 'Mesken',
-    street_number: '', door_number: ''
-  };
+ const initialForm = {
+  first_name: '', last_name: '', tc_no: '', phone: '', email: '', notes: '',
+  block_id: '', floor: '', unit_no: '', unit_type: 'Mesken',
+  street_number: '', door_number: ''
+};
   const [formData, setFormData] = useState(initialForm);
 
   useEffect(() => { fetchData(); }, []);
@@ -79,12 +79,12 @@ export default function MaliklerPage() {
 
         if (formData.unit_type === 'Mesken' && formData.floor && formData.unit_no) {
           const unitData = {
-            block_id: formData.block_id, block_name: blockName,
-            floor: parseInt(formData.floor), unit_no: formData.unit_no,
-            area: parseFloat(formData.area) || 0, type: 'Mesken',
-            owner_id: ownerId, owner_name: `${formData.first_name} ${formData.last_name}`,
-            owner_phone: formData.phone
-          };
+  block_id: formData.block_id, block_name: blockName,
+  floor: parseInt(formData.floor), unit_no: formData.unit_no,
+  type: 'Mesken',
+  owner_id: ownerId, owner_name: `${formData.first_name} ${formData.last_name}`,
+  owner_phone: formData.phone
+};
           const { data: existing } = await supabase.from("units").select("id").eq("block_name", blockName).eq("floor", unitData.floor).eq("unit_no", unitData.unit_no).eq("type", "Mesken");
           if (existing?.length) {
             await supabase.from("units").update({ owner_id: ownerId, owner_name: unitData.owner_name, owner_phone: unitData.owner_phone }).eq("id", existing[0].id);
@@ -204,7 +204,7 @@ export default function MaliklerPage() {
                   </div>
 
                   {formData.unit_type === 'Mesken' && formData.block_id && (
-                    <div className="grid grid-cols-4 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="grid grid-cols-3 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                       <div>
                         <label className="block text-sm font-medium text-blue-900 mb-1">Kat *</label>
                         <select required className="w-full px-4 py-2 border border-blue-300 rounded-lg bg-white" value={formData.floor} onChange={(e) => setFormData({...formData, floor: e.target.value})}>
@@ -224,10 +224,7 @@ export default function MaliklerPage() {
                           </p>
                         )}
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-blue-900 mb-1">Alan (m²) *</label>
-                        <input type="number" step="0.01" required className="w-full px-4 py-2 border border-blue-300 rounded-lg" value={formData.area} onChange={(e) => setFormData({...formData, area: e.target.value})} placeholder="100" />
-                      </div>
+                      
                       <div className="flex items-end">
                         <div className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium">
                           📍 {blocks.find(b => b.id === formData.block_id)?.name} - {formData.floor || '?'} - No:{formData.unit_no || '?'}
