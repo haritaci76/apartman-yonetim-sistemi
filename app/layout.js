@@ -1,3 +1,5 @@
+import './globals.css'
+
 export const metadata = {
   title: "Apartman Yönetim Sistemi",
   description: "Profesyonel Site ve Apartman Yönetimi",
