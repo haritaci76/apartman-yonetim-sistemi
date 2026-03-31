@@ -15,22 +15,20 @@ export default function MaliklerPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    tc_no: '',
-    phone: '',
-    email: '',
-    notes: '',
-    // Daire bilgileri
-    block_id: '',
-    floor: '',
-    unit_no: '',
-    unit_type: 'Mesken',
-    // İş yeri için
-    street_number: '',
-    door_number: ''
-  });
-
+  first_name: '',
+  last_name: '',
+  tc_no: '',
+  phone: '',
+  email: '',
+  notes: '',
+  block_id: '',
+  floor: '',
+  unit_no: '',
+  area: '',  // ← BUNU EKLE
+  unit_type: 'Mesken',
+  street_number: '',
+  door_number: ''
+});
   useEffect(() => {
     fetchData();
   }, []);
@@ -157,23 +155,24 @@ export default function MaliklerPage() {
   }
 
   function resetForm() {
-    setShowForm(false);
-    setEditingId(null);
-    setFormData({
-      first_name: '',
-      last_name: '',
-      tc_no: '',
-      phone: '',
-      email: '',
-      notes: '',
-      block_id: '',
-      floor: '',
-      unit_no: '',
-      unit_type: 'Mesken',
-      street_number: '',
-      door_number: ''
-    });
-  }
+  setShowForm(false);
+  setEditingId(null);
+  setFormData({
+    first_name: '',
+    last_name: '',
+    tc_no: '',
+    phone: '',
+    email: '',
+    notes: '',
+    block_id: '',
+    floor: '',
+    unit_no: '',
+    area: '',  // ← BUNU EKLE
+    unit_type: 'Mesken',
+    street_number: '',
+    door_number: ''
+  });
+}
 
   function editOwner(owner) {
     setEditingId(owner.id);
@@ -339,48 +338,66 @@ export default function MaliklerPage() {
                     </select>
                   </div>
 
-                  {formData.unit_type === 'Mesken' && (
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Kat *</label>
-                        <select
-                          required
-                          className="w-full px-4 py-2 border rounded-lg"
-                          value={formData.floor}
-                          onChange={(e) => setFormData({...formData, floor: e.target.value})}
-                        >
-                          <option value="">Seçiniz...</option>
-                          {floors.map((f) => (
-                            <option key={f} value={f}>{f}. Kat</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Daire No *</label>
-                        <select
-                          required
-                          className="w-full px-4 py-2 border rounded-lg"
-                          value={formData.unit_no}
-                          onChange={(e) => setFormData({...formData, unit_no: e.target.value})}
-                        >
-                          <option value="">Seçiniz...</option>
-                          {unitNumbers.map((n) => (
-                            <option key={n} value={n}>{n}. Daire</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex items-end">
-                        <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-sm">
-                          {formData.block_id && formData.floor !== '' && formData.unit_no ? (
-                            <>📍 {blocks.find(b => b.id === formData.block_id)?.name} - {formData.floor}. Kat - No: {formData.unit_no}</>
-                          ) : (
-                            'Blok, kat ve daire seçin'
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
+                 {formData.unit_type === 'Mesken' && (
+  <div className="grid grid-cols-4 gap-4">
+    <div>
+      <label className="block text-sm font-medium mb-1">Blok *</label>
+      <select
+        required
+        className="w-full px-4 py-2 border rounded-lg"
+        value={formData.block_id}
+        onChange={(e) => setFormData({...formData, block_id: e.target.value})}
+      >
+        <option value="">Blok Seçiniz...</option>
+        {blocks.map((block) => (
+          <option key={block.id} value={block.id}>
+            {block.name} Blok
+          </option>
+        ))}
+      </select>
+    </div>
+    <div>
+      <label className="block text-sm font-medium mb-1">Kat *</label>
+      <select
+        required
+        className="w-full px-4 py-2 border rounded-lg"
+        value={formData.floor}
+        onChange={(e) => setFormData({...formData, floor: e.target.value})}
+      >
+        <option value="">Seçiniz...</option>
+        {floors.map((f) => (
+          <option key={f} value={f}>{f}. Kat</option>
+        ))}
+      </select>
+    </div>
+    <div>
+      <label className="block text-sm font-medium mb-1">Daire No *</label>
+      <select
+        required
+        className="w-full px-4 py-2 border rounded-lg"
+        value={formData.unit_no}
+        onChange={(e) => setFormData({...formData, unit_no: e.target.value})}
+      >
+        <option value="">Seçiniz...</option>
+        {unitNumbers.map((n) => (
+          <option key={n} value={n}>{n}. Daire</option>
+        ))}
+      </select>
+    </div>
+    <div>
+      <label className="block text-sm font-medium mb-1">Alan (m²) *</label>
+      <input
+        type="number"
+        step="0.01"
+        required
+        className="w-full px-4 py-2 border rounded-lg"
+        value={formData.area}
+        onChange={(e) => setFormData({...formData, area: e.target.value})}
+        placeholder="100"
+      />
+    </div>
+  </div>
+)}
                   {formData.unit_type === 'İş Yeri' && (
                     <div className="grid grid-cols-2 gap-4">
                       <div>
