@@ -8,9 +8,15 @@ const supabaseUrl = "https://drffiolzmavwbbsulplb.supabase.co";
 const supabaseKey = "sb_publishable_SNCUbKXAIu3jijB2hK4GIQ_o2klAx5A";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Sabitler
-const FLOORS = Array.from({ length: 9 }, (_, i) => i); // 0-8
-const UNIT_NUMBERS = ['1', '2'];
+// Katlar: 1-9 arası
+const FLOORS = Array.from({ length: 9 }, (_, i) => i + 1);
+
+// Kata göre daire numaralarını hesapla
+function getUnitNumbersForFloor(floor) {
+  const first = (floor - 1) * 2 + 1;
+  const second = first + 1;
+  return [first.toString(), second.toString()];
+}
 
 export default function MaliklerPage() {
   const [owners, setOwners] = useState([]);
@@ -18,6 +24,7 @@ export default function MaliklerPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [availableUnits, setAvailableUnits] = useState([]);
   
   const initialForm = {
     first_name: '', last_name: '', tc_no: '', phone: '', email: '', notes: '',
@@ -27,6 +34,19 @@ export default function MaliklerPage() {
   const [formData, setFormData] = useState(initialForm);
 
   useEffect(() => { fetchData(); }, []);
+
+  // Kat değişince daire numaralarını güncelle
+  useEffect(() => {
+    if (formData.floor && formData.unit_type === 'Mesken') {
+      const floorNum = parseInt(formData.floor);
+      const units = getUnitNumbersForFloor(floorNum);
+      setAvailableUnits(units);
+      // Seçili daire bu katın aralığında değilse sıfırla
+      if (!units.includes(formData.unit_no)) {
+        setFormData(prev => ({ ...prev, unit_no: '' }));
+      }
+    }
+  }, [formData.floor, formData.unit_type]);
 
   async function fetchData() {
     const { data: ownersData } = await supabase.from("owners").select("*, units(block_name, floor, unit_no, type, street_number, door_number)").order("last_name");
@@ -57,7 +77,7 @@ export default function MaliklerPage() {
         const block = blocks.find(b => b.id === formData.block_id);
         const blockName = block?.name?.toUpperCase() || '';
 
-        if (formData.unit_type === 'Mesken' && formData.floor !== '' && formData.unit_no) {
+        if (formData.unit_type === 'Mesken' && formData.floor && formData.unit_no) {
           const unitData = {
             block_id: formData.block_id, block_name: blockName,
             floor: parseInt(formData.floor), unit_no: formData.unit_no,
@@ -74,7 +94,7 @@ export default function MaliklerPage() {
         } else if (formData.unit_type === 'İş Yeri' && formData.street_number && formData.door_number) {
           const unitData = {
             block_id: formData.block_id, block_name: blockName,
-            floor: -1, unit_no: `İş${formData.door_number}`, type: 'İş Yeri',
+            floor: 0, unit_no: `Dükkan${formData.door_number}`, type: 'İş Yeri',
             street_number: formData.street_number.toUpperCase(), door_number: formData.door_number,
             owner_id: ownerId, owner_name: `${formData.first_name} ${formData.last_name}`,
             owner_phone: formData.phone
@@ -99,6 +119,7 @@ export default function MaliklerPage() {
     setShowForm(false);
     setEditingId(null);
     setFormData(initialForm);
+    setAvailableUnits([]);
   }
 
   function editOwner(owner) {
@@ -108,6 +129,7 @@ export default function MaliklerPage() {
       tc_no: owner.tc_no || '', phone: owner.phone || '', email: owner.email || '', notes: owner.notes || '',
       block_id: '', floor: '', unit_no: '', area: '', unit_type: 'Mesken', street_number: '', door_number: ''
     });
+    setAvailableUnits([]);
     setShowForm(true);
   }
 
@@ -125,7 +147,7 @@ export default function MaliklerPage() {
         <aside className="w-64 bg-slate-800 text-white">
           <div className="p-6 border-b border-slate-700">
             <h1 className="text-2xl font-bold">🏢 SiteYönet</h1>
-            <p className="text-xs text-slate-400 mt-1">5 Blok - 90 Mesken</p>
+            <p className="text-xs text-slate-400 mt-1">5 Blok - 9 Kat - 18 Daire/Blok</p>
           </div>
           <nav className="p-4 space-y-2">
             <Link href="/" className="block px-4 py-3 hover:bg-slate-700 rounded-lg">📊 Dashboard</Link>
@@ -171,25 +193,65 @@ export default function MaliklerPage() {
 
                   <div className="mb-3">
                     <label className="block text-sm font-medium mb-1">Tip *</label>
-                    <select required className="w-full px-4 py-2 border rounded-lg" value={formData.unit_type} onChange={(e) => setFormData({...formData, unit_type: e.target.value})}>
-                      <option value="Mesken">🏠 Mesken</option>
-                      <option value="İş Yeri">🏪 İş Yeri</option>
+                    <select required className="w-full px-4 py-2 border rounded-lg" value={formData.unit_type} onChange={(e) => {
+                      const newType = e.target.value;
+                      setFormData(prev => ({ ...prev, unit_type: newType, floor: '', unit_no: '' }));
+                      setAvailableUnits([]);
+                    }}>
+                      <option value="Mesken">🏠 Mesken (Daire)</option>
+                      <option value="İş Yeri">🏪 İş Yeri (Dükkan)</option>
                     </select>
                   </div>
 
                   {formData.unit_type === 'Mesken' && formData.block_id && (
-                    <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-                      <div><label className="block text-sm font-medium mb-1">Kat *</label><select required className="w-full px-4 py-2 border rounded-lg" value={formData.floor} onChange={(e) => setFormData({...formData, floor: e.target.value})}><option value="">Seçiniz...</option>{FLOORS.map(f => <option key={f} value={f}>{f}. Kat</option>)}</select></div>
-                      <div><label className="block text-sm font-medium mb-1">Daire *</label><select required className="w-full px-4 py-2 border rounded-lg" value={formData.unit_no} onChange={(e) => setFormData({...formData, unit_no: e.target.value})}><option value="">Seçiniz...</option>{UNIT_NUMBERS.map(n => <option key={n} value={n}>{n}. Daire</option>)}</select></div>
-                      <div><label className="block text-sm font-medium mb-1">Alan (m²) *</label><input type="number" step="0.01" required className="w-full px-4 py-2 border rounded-lg" value={formData.area} onChange={(e) => setFormData({...formData, area: e.target.value})} placeholder="100" /></div>
-                      <div className="flex items-end"><div className="bg-blue-100 text-blue-800 px-3 py-2 rounded text-sm">📍 {blocks.find(b => b.id === formData.block_id)?.name} - {formData.floor || '?'} - No:{formData.unit_no || '?'}</div></div>
+                    <div className="grid grid-cols-4 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div>
+                        <label className="block text-sm font-medium text-blue-900 mb-1">Kat *</label>
+                        <select required className="w-full px-4 py-2 border border-blue-300 rounded-lg bg-white" value={formData.floor} onChange={(e) => setFormData({...formData, floor: e.target.value})}>
+                          <option value="">Seçiniz...</option>
+                          {FLOORS.map(f => <option key={f} value={f}>{f}. Kat</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-blue-900 mb-1">Daire No *</label>
+                        <select required disabled={!formData.floor} className="w-full px-4 py-2 border border-blue-300 rounded-lg bg-white disabled:bg-gray-100" value={formData.unit_no} onChange={(e) => setFormData({...formData, unit_no: e.target.value})}>
+                          <option value="">Önce kat seçin...</option>
+                          {availableUnits.map(u => <option key={u} value={u}>No: {u}</option>)}
+                        </select>
+                        {formData.floor && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            {formData.floor}. katta: Daire {getUnitNumbersForFloor(parseInt(formData.floor)).join(' ve ')}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-blue-900 mb-1">Alan (m²) *</label>
+                        <input type="number" step="0.01" required className="w-full px-4 py-2 border border-blue-300 rounded-lg" value={formData.area} onChange={(e) => setFormData({...formData, area: e.target.value})} placeholder="100" />
+                      </div>
+                      <div className="flex items-end">
+                        <div className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium">
+                          📍 {blocks.find(b => b.id === formData.block_id)?.name} - {formData.floor || '?'} - No:{formData.unit_no || '?'}
+                        </div>
+                      </div>
                     </div>
                   )}
 
                   {formData.unit_type === 'İş Yeri' && formData.block_id && (
-                    <div className="grid grid-cols-2 gap-4 p-4 bg-orange-50 rounded-lg">
-                      <div><label className="block text-sm font-medium mb-1">Sokak No *</label><input type="text" required className="w-full px-4 py-2 border rounded-lg uppercase" value={formData.street_number} onChange={(e) => setFormData({...formData, street_number: e.target.value.toUpperCase()})} placeholder="15" /></div>
-                      <div><label className="block text-sm font-medium mb-1">Kapı No *</label><input type="text" required className="w-full px-4 py-2 border rounded-lg" value={formData.door_number} onChange={(e) => setFormData({...formData, door_number: e.target.value})} placeholder="1" /></div>
+                    <div className="grid grid-cols-3 gap-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                      <div>
+                        <label className="block text-sm font-medium text-orange-900 mb-1">Kat</label>
+                        <div className="px-4 py-2 bg-orange-100 border border-orange-300 rounded-lg text-orange-800 font-medium">
+                          Z (Zemin)
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-orange-900 mb-1">Sokak No *</label>
+                        <input type="text" required className="w-full px-4 py-2 border border-orange-300 rounded-lg uppercase" value={formData.street_number} onChange={(e) => setFormData({...formData, street_number: e.target.value.toUpperCase()})} placeholder="örn: 15" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-orange-900 mb-1">Dükkan No *</label>
+                        <input type="text" required className="w-full px-4 py-2 border border-orange-300 rounded-lg" value={formData.door_number} onChange={(e) => setFormData({...formData, door_number: e.target.value})} placeholder="örn: 1" />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -215,7 +277,13 @@ export default function MaliklerPage() {
                     <tr key={o.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 text-sm font-medium">{o.first_name} {o.last_name}</td>
                       <td className="px-6 py-4 text-sm">{o.phone || '-'}</td>
-                      <td className="px-6 py-4 text-sm">{o.units ? <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">{o.units.block_name} - {o.units.type === 'Mesken' ? `${o.units.floor}.Kat No:${o.units.unit_no}` : `İş Yeri`}</span> : '-'}</td>
+                      <td className="px-6 py-4 text-sm">
+                        {o.units ? (
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${o.units.type === 'Mesken' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}`}>
+                            {o.units.block_name} - {o.units.type === 'Mesken' ? `${o.units.floor}. Kat No:${o.units.unit_no}` : 'Zemin - Dükkan'}
+                          </span>
+                        ) : '-'}
+                      </td>
                       <td className="px-6 py-4 text-sm text-right space-x-2">
                         <button onClick={() => editOwner(o)} className="text-blue-600">✏️</button>
                         <button onClick={() => deleteOwner(o.id)} className="text-red-600">🗑️</button>
