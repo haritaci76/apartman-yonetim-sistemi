@@ -276,10 +276,12 @@ export default function MaliklerPage() {
                       <td className="px-6 py-4 text-sm">{o.phone || '-'}</td>
                       <td className="px-6 py-4 text-sm">
                         {o.units ? (
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${o.units.type === 'Mesken' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}`}>
-                            {o.units.block_name} - {o.units.type === 'Mesken' ? `${o.units.floor}. Kat No:${o.units.unit_no}` : 'Zemin - Dükkan'}
-                          </span>
-                        ) : '-'}
+                          {owner.units ? (
+  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+    {owner.units.block_name} - Mesken
+    {owner.units.type === 'Mesken' && owner.units.floor && ` (${owner.units.floor}. Kat No:${owner.units.unit_no})`}
+  </span>
+) : '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-right space-x-2">
                         <button onClick={() => editOwner(o)} className="text-blue-600">✏️</button>
