@@ -86,15 +86,17 @@ export default function Dashboard() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-8">
-          <header className="flex justify-between items-center mb-8">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-800">Genel Bakış</h2>
-              <p className="text-gray-500 mt-1">Hoşgeldiniz, işte site durumu.</p>
-            </div>
-            <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 shadow-lg font-medium">
-              + Yeni Kayıt
-            </button>
-          </header>
+       <header className="flex justify-between items-center mb-8">
+  <div>
+    <h2 className="text-3xl font-bold text-gray-800">Genel Bakış</h2>
+    <p className="text-gray-500 mt-1">Hoşgeldiniz, işte site durumu.</p>
+  </div>
+  {/* İleride kullanılacak - Şu an devre dışı
+  <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 shadow-lg font-medium">
+    + Yeni Kayıt
+  </button>
+  */}
+</header>
 
           {loading ? (
             <div className="text-center text-gray-500 mt-20 text-xl">Yükleniyor...</div>
