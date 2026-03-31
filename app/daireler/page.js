@@ -5,7 +5,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 
 const supabaseUrl = "https://drffiolzmavwbbsulplb.supabase.co";
-const supabaseKey = "sb_publishable_SNCUbKXAIu3jijB2hK4GIQ_o2klA..."; // Kendi anahtarını yapıştır
+const supabaseKey = "sb_publishable_SNCUbKXAIu3jijB2hK4GIQ_o2klAx5A"; // Kendi anahtarını yapıştır
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function DairelerPage() {
