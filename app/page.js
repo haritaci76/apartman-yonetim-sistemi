@@ -1,4 +1,5 @@
 "use client";
+import Link from 'next/link';
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Head from 'next/head';
@@ -68,14 +69,14 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold">🏢 SiteYönet</h1>
             <p className="text-xs text-slate-400 mt-1">Profesyonel Çözüm</p>
           </div>
-          <nav className="flex-1 p-4 space-y-2">
-            <a href="#" className="block px-4 py-3 bg-slate-700 rounded-lg text-white font-medium">📊 Dashboard</a>
-            <a href="#" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">🏠 Daireler</a>
-            <a href="#" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">💰 Gelir/Gider</a>
-            <a href="#" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">👥 Personel</a>
-            <a href="#" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">⚡ Sayaçlar</a>
-            <a href="#" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">📄 Raporlar</a>
-          </nav>
+         <nav className="flex-1 p-4 space-y-2">
+  <a href="/" className="block px-4 py-3 bg-slate-700 rounded-lg text-white font-medium">📊 Dashboard</a>
+  <a href="/daireler" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">🏠 Daireler</a>
+  <a href="/gelir-gider" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">💰 Gelir/Gider</a>
+  <a href="/personel" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">👥 Personel</a>
+  <a href="/sayac" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">⚡ Sayaçlar</a>
+  <a href="/raporlar" className="block px-4 py-3 hover:bg-slate-700 rounded-lg text-slate-300">📄 Raporlar</a>
+</nav>
           <div className="p-4 border-t border-slate-700">
             <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${stats.licenseStatus === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
