@@ -11,7 +11,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export default function MaliklerPage() {
   const [owners, setOwners] = useState([]);
   const [blocks, setBlocks] = useState([]);
-  const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -21,14 +20,15 @@ export default function MaliklerPage() {
     tc_no: '',
     phone: '',
     email: '',
-    address: '',
     notes: '',
-    // Unit bilgileri
+    // Daire bilgileri
     block_id: '',
     floor: '',
     unit_no: '',
-    area: '',
-    unit_type: 'Konut'
+    unit_type: 'Mesken',
+    // İş yeri için
+    street_number: '',
+    door_number: ''
   });
 
   useEffect(() => {
@@ -36,21 +36,15 @@ export default function MaliklerPage() {
   }, []);
 
   async function fetchData() {
-    // Malikleri getir
-    const { data: ownersData } = await supabase
+    const {  ownersData } = await supabase
       .from("owners")
-      .select("*, units(block_name, floor, no, type)")
+      .select("*, units(block_name, floor, unit_no, type, street_number, door_number)")
       .order("last_name");
 
-    // Blokları getir
-    const { data: blocksData } = await supabase.from("blocks").select("*").order("name");
-    
-    // Daireleri getir
-    const { data: unitsData } = await supabase.from("units").select("*").order("block_name");
+    const {  blocksData } = await supabase.from("blocks").select("*").order("name");
 
     setOwners(ownersData || []);
     setBlocks(blocksData || []);
-    setUnits(unitsData || []);
     setLoading(false);
   }
 
@@ -58,7 +52,7 @@ export default function MaliklerPage() {
     e.preventDefault();
 
     try {
-      // 1. Önce owner ekle/güncelle
+      // 1. Owner ekle/güncelle
       let ownerId = editingId;
       const ownerData = {
         first_name: formData.first_name,
@@ -66,7 +60,6 @@ export default function MaliklerPage() {
         tc_no: formData.tc_no,
         phone: formData.phone,
         email: formData.email,
-        address: formData.address,
         notes: formData.notes
       };
 
@@ -78,38 +71,80 @@ export default function MaliklerPage() {
         if (data) ownerId = data[0].id;
       }
 
-      // 2. Eğer blok/kat/no girilmişse, unit oluştur/güncelle
-      if (formData.block_id && formData.floor && formData.unit_no) {
+      // 2. Daire/İş yeri bilgilerini güncelle
+      if (formData.block_id && ownerId) {
         const block = blocks.find(b => b.id === formData.block_id);
-        
-        const unitData = {
-          block_name: block?.name || formData.block_id,
-          floor: parseInt(formData.floor),
-          no: formData.unit_no,
-          area: parseFloat(formData.area) || 0,
-          type: formData.unit_type,
-          owner_id: ownerId,
-          owner_name: `${formData.first_name} ${formData.last_name}`,
-          owner_phone: formData.phone
-        };
+        const blockName = block?.name.toUpperCase() || '';
 
-        // Bu daireye sahip owner var mı kontrol et
-        const existingUnit = units.find(u => 
-          u.block_name === unitData.block_name && 
-          u.floor === unitData.floor && 
-          u.no === unitData.no
-        );
+        if (formData.unit_type === 'Mesken') {
+          // MESKEN için
+          if (formData.floor !== '' && formData.unit_no) {
+            const unitData = {
+              block_id: formData.block_id,
+              block_name: blockName,
+              floor: parseInt(formData.floor),
+              unit_no: formData.unit_no,
+              type: 'Mesken',
+              owner_id: ownerId,
+              owner_name: `${formData.first_name} ${formData.last_name}`,
+              owner_phone: formData.phone,
+              street_number: null,
+              door_number: null
+            };
 
-        if (existingUnit) {
-          // Varsa güncelle
-          await supabase.from("units").update({
-            owner_id: ownerId,
-            owner_name: unitData.owner_name,
-            owner_phone: unitData.owner_phone
-          }).eq('id', existingUnit.id);
+            // Var mı kontrol et
+            const {  existing } = await supabase
+              .from("units")
+              .select("id")
+              .eq("block_name", blockName)
+              .eq("floor", unitData.floor)
+              .eq("unit_no", unitData.unit_no)
+              .eq("type", "Mesken");
+
+            if (existing && existing.length > 0) {
+              await supabase.from("units").update({
+                owner_id: ownerId,
+                owner_name: unitData.owner_name,
+                owner_phone: unitData.owner_phone
+              }).eq("id", existing[0].id);
+            } else {
+              await supabase.from("units").insert([unitData]);
+            }
+          }
         } else {
-          // Yoksa yeni oluştur
-          await supabase.from("units").insert([unitData]);
+          // İŞ YERİ için
+          if (formData.street_number && formData.door_number) {
+            const unitData = {
+              block_id: formData.block_id,
+              block_name: blockName,
+              floor: -1,
+              unit_no: `İş${formData.door_number}`,
+              type: 'İş Yeri',
+              street_number: formData.street_number.toUpperCase(),
+              door_number: formData.door_number,
+              owner_id: ownerId,
+              owner_name: `${formData.first_name} ${formData.last_name}`,
+              owner_phone: formData.phone
+            };
+
+            const {  existing } = await supabase
+              .from("units")
+              .select("id")
+              .eq("block_name", blockName)
+              .eq("street_number", unitData.street_number)
+              .eq("door_number", unitData.door_number)
+              .eq("type", "İş Yeri");
+
+            if (existing && existing.length > 0) {
+              await supabase.from("units").update({
+                owner_id: ownerId,
+                owner_name: unitData.owner_name,
+                owner_phone: unitData.owner_phone
+              }).eq("id", existing[0].id);
+            } else {
+              await supabase.from("units").insert([unitData]);
+            }
+          }
         }
       }
 
@@ -130,13 +165,13 @@ export default function MaliklerPage() {
       tc_no: '',
       phone: '',
       email: '',
-      address: '',
       notes: '',
       block_id: '',
       floor: '',
       unit_no: '',
-      area: '',
-      unit_type: 'Konut'
+      unit_type: 'Mesken',
+      street_number: '',
+      door_number: ''
     });
   }
 
@@ -148,13 +183,13 @@ export default function MaliklerPage() {
       tc_no: owner.tc_no || '',
       phone: owner.phone || '',
       email: owner.email || '',
-      address: owner.address || '',
       notes: owner.notes || '',
       block_id: '',
       floor: '',
       unit_no: '',
-      area: '',
-      unit_type: 'Konut'
+      unit_type: 'Mesken',
+      street_number: '',
+      door_number: ''
     });
     setShowForm(true);
   }
@@ -171,6 +206,10 @@ export default function MaliklerPage() {
     }
   }
 
+  // Kat ve daire seçenekleri
+  const floors = Array.from({ length: 9 }, (_, i) => i); // 0-8
+  const unitNumbers = ['1', '2']; // Her katta 2 daire
+
   return (
     <>
       <Head>
@@ -181,6 +220,7 @@ export default function MaliklerPage() {
         <aside className="w-64 bg-slate-800 text-white">
           <div className="p-6 border-b border-slate-700">
             <h1 className="text-2xl font-bold">🏢 SiteYönet</h1>
+            <p className="text-xs text-slate-400 mt-1">5 Blok - 90 Mesken</p>
           </div>
           <nav className="p-4 space-y-2">
             <Link href="/" className="block px-4 py-3 hover:bg-slate-700 rounded-lg">📊 Dashboard</Link>
@@ -263,81 +303,110 @@ export default function MaliklerPage() {
                       placeholder="ahmet@email.com"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Adres</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 border rounded-lg"
-                      value={formData.address}
-                      onChange={(e) => setFormData({...formData, address: e.target.value})}
-                      placeholder="İstanbul..."
-                    />
-                  </div>
                 </div>
 
-                {/* Daire Bilgileri */}
+                {/* Daire/İş Yeri Bilgileri */}
                 <div className="border-t pt-4 mt-4">
-                  <h3 className="font-bold text-gray-700 mb-3">🏠 Daire Bilgileri</h3>
-                  <div className="grid grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Blok</label>
-                      <select
-                        className="w-full px-4 py-2 border rounded-lg"
-                        value={formData.block_id}
-                        onChange={(e) => setFormData({...formData, block_id: e.target.value})}
-                      >
-                        <option value="">Seçiniz...</option>
-                        {blocks.map((block) => (
-                          <option key={block.id} value={block.id}>
-                            {block.name} Blok
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Kat</label>
-                      <input
-                        type="number"
-                        className="w-full px-4 py-2 border rounded-lg"
-                        value={formData.floor}
-                        onChange={(e) => setFormData({...formData, floor: e.target.value})}
-                        placeholder="0"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Daire No</label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-2 border rounded-lg"
-                        value={formData.unit_no}
-                        onChange={(e) => setFormData({...formData, unit_no: e.target.value})}
-                        placeholder="1"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Alan (m²)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="w-full px-4 py-2 border rounded-lg"
-                        value={formData.area}
-                        onChange={(e) => setFormData({...formData, area: e.target.value})}
-                        placeholder="100"
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <label className="block text-sm font-medium mb-1">Daire Tipi</label>
+                  <h3 className="font-bold text-gray-700 mb-3">🏠 Daire/İş Yeri Bilgileri</h3>
+                  
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium mb-1">Blok *</label>
                     <select
+                      required
+                      className="w-full px-4 py-2 border rounded-lg"
+                      value={formData.block_id}
+                      onChange={(e) => setFormData({...formData, block_id: e.target.value})}
+                    >
+                      <option value="">Blok Seçiniz...</option>
+                      {blocks.map((block) => (
+                        <option key={block.id} value={block.id}>
+                          {block.name} Blok
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium mb-1">Birim Tipi *</label>
+                    <select
+                      required
                       className="w-full px-4 py-2 border rounded-lg"
                       value={formData.unit_type}
                       onChange={(e) => setFormData({...formData, unit_type: e.target.value})}
                     >
-                      <option value="Konut">Konut</option>
-                      <option value="İş Yeri">İş Yeri</option>
-                      <option value="Depo">Depo</option>
+                      <option value="Mesken">🏠 Mesken (Daire)</option>
+                      <option value="İş Yeri">🏪 İş Yeri</option>
                     </select>
                   </div>
+
+                  {formData.unit_type === 'Mesken' && (
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Kat *</label>
+                        <select
+                          required
+                          className="w-full px-4 py-2 border rounded-lg"
+                          value={formData.floor}
+                          onChange={(e) => setFormData({...formData, floor: e.target.value})}
+                        >
+                          <option value="">Seçiniz...</option>
+                          {floors.map((f) => (
+                            <option key={f} value={f}>{f}. Kat</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Daire No *</label>
+                        <select
+                          required
+                          className="w-full px-4 py-2 border rounded-lg"
+                          value={formData.unit_no}
+                          onChange={(e) => setFormData({...formData, unit_no: e.target.value})}
+                        >
+                          <option value="">Seçiniz...</option>
+                          {unitNumbers.map((n) => (
+                            <option key={n} value={n}>{n}. Daire</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-end">
+                        <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-sm">
+                          {formData.block_id && formData.floor !== '' && formData.unit_no ? (
+                            <>📍 {blocks.find(b => b.id === formData.block_id)?.name} - {formData.floor}. Kat - No: {formData.unit_no}</>
+                          ) : (
+                            'Blok, kat ve daire seçin'
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {formData.unit_type === 'İş Yeri' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Sokak No *</label>
+                        <input
+                          type="text"
+                          required
+                          className="w-full px-4 py-2 border rounded-lg uppercase"
+                          value={formData.street_number}
+                          onChange={(e) => setFormData({...formData, street_number: e.target.value.toUpperCase()})}
+                          placeholder="örn: 15"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Kapı No *</label>
+                        <input
+                          type="text"
+                          required
+                          className="w-full px-4 py-2 border rounded-lg"
+                          value={formData.door_number}
+                          onChange={(e) => setFormData({...formData, door_number: e.target.value})}
+                          placeholder="örn: 1"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -378,7 +447,7 @@ export default function MaliklerPage() {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ad Soyad</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefon</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Daire</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Birim</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">E-posta</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">İşlemler</th>
                   </tr>
@@ -390,17 +459,23 @@ export default function MaliklerPage() {
                       <td className="px-6 py-4 text-sm">{owner.phone || '-'}</td>
                       <td className="px-6 py-4 text-sm">
                         {owner.units ? (
-                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                            {owner.units.block_name} Blok - Kat:{owner.units.floor} - No:{owner.units.no}
-                          </span>
+                          owner.units.type === 'Mesken' ? (
+                            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium">
+                              {owner.units.block_name} Blok - {owner.units.floor}. Kat - No: {owner.units.unit_no}
+                            </span>
+                          ) : (
+                            <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-xs font-medium">
+                              {owner.units.block_name} Blok - İş Yeri (Sokak: {owner.units.street_number}, Kapı: {owner.units.door_number})
+                            </span>
+                          )
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm">{owner.email || '-'}</td>
                       <td className="px-6 py-4 text-sm text-right space-x-2">
-                        <button onClick={() => editOwner(owner)} className="text-blue-600 hover:text-blue-800">✏️</button>
-                        <button onClick={() => deleteOwner(owner.id)} className="text-red-600 hover:text-red-800">🗑️</button>
+                        <button onClick={() => editOwner(owner)} className="text-blue-600 hover:text-blue-800">✏️ Düzenle</button>
+                        <button onClick={() => deleteOwner(owner.id)} className="text-red-600 hover:text-red-800">🗑️ Sil</button>
                       </td>
                     </tr>
                   ))}
