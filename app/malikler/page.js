@@ -14,7 +14,7 @@ export default function MaliklerPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
   first_name: '',
   last_name: '',
   tc_no: '',
@@ -24,13 +24,13 @@ export default function MaliklerPage() {
   block_id: '',
   floor: '',
   unit_no: '',
-  area: '',  // ← BUNU EKLE
+  area: '',  // ← EKLE
   unit_type: 'Mesken',
   street_number: '',
   door_number: ''
 });
   useEffect(() => {
-    fetchData();
+    fetchData();  
   }, []);
 
   async function fetchData() {
@@ -154,7 +154,7 @@ export default function MaliklerPage() {
     }
   }
 
-  function resetForm() {
+function resetForm() {
   setShowForm(false);
   setEditingId(null);
   setFormData({
@@ -167,7 +167,7 @@ export default function MaliklerPage() {
     block_id: '',
     floor: '',
     unit_no: '',
-    area: '',  // ← BUNU EKLE
+    area: '',  // ← EKLE
     unit_type: 'Mesken',
     street_number: '',
     door_number: ''
@@ -309,23 +309,6 @@ export default function MaliklerPage() {
                   <h3 className="font-bold text-gray-700 mb-3">🏠 Daire/İş Yeri Bilgileri</h3>
                   
                   <div className="mb-3">
-                    <label className="block text-sm font-medium mb-1">Blok *</label>
-                    <select
-                      required
-                      className="w-full px-4 py-2 border rounded-lg"
-                      value={formData.block_id}
-                      onChange={(e) => setFormData({...formData, block_id: e.target.value})}
-                    >
-                      <option value="">Blok Seçiniz...</option>
-                      {blocks.map((block) => (
-                        <option key={block.id} value={block.id}>
-                          {block.name} Blok
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="mb-3">
                     <label className="block text-sm font-medium mb-1">Birim Tipi *</label>
                     <select
                       required
@@ -338,29 +321,13 @@ export default function MaliklerPage() {
                     </select>
                   </div>
 
-                 {formData.unit_type === 'Mesken' && (
-  <div className="grid grid-cols-4 gap-4">
+  {formData.unit_type === 'Mesken' && formData.block_id && (
+  <div className="grid grid-cols-4 gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
     <div>
-      <label className="block text-sm font-medium mb-1">Blok *</label>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Kat *</label>
       <select
         required
-        className="w-full px-4 py-2 border rounded-lg"
-        value={formData.block_id}
-        onChange={(e) => setFormData({...formData, block_id: e.target.value})}
-      >
-        <option value="">Blok Seçiniz...</option>
-        {blocks.map((block) => (
-          <option key={block.id} value={block.id}>
-            {block.name} Blok
-          </option>
-        ))}
-      </select>
-    </div>
-    <div>
-      <label className="block text-sm font-medium mb-1">Kat *</label>
-      <select
-        required
-        className="w-full px-4 py-2 border rounded-lg"
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         value={formData.floor}
         onChange={(e) => setFormData({...formData, floor: e.target.value})}
       >
@@ -371,10 +338,10 @@ export default function MaliklerPage() {
       </select>
     </div>
     <div>
-      <label className="block text-sm font-medium mb-1">Daire No *</label>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Daire No *</label>
       <select
         required
-        className="w-full px-4 py-2 border rounded-lg"
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         value={formData.unit_no}
         onChange={(e) => setFormData({...formData, unit_no: e.target.value})}
       >
@@ -385,6 +352,24 @@ export default function MaliklerPage() {
       </select>
     </div>
     <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Alan (m²) *</label>
+      <input
+        type="number"
+        step="0.01"
+        required
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+        value={formData.area}
+        onChange={(e) => setFormData({...formData, area: e.target.value})}
+        placeholder="100"
+      />
+    </div>
+    <div className="flex items-end">
+      <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg text-sm font-medium">
+        📍 {blocks.find(b => b.id === formData.block_id)?.name} - {formData.floor || '?'}. Kat - No: {formData.unit_no || '?'}
+      </div>
+    </div>
+  </div>
+)}
       <label className="block text-sm font-medium mb-1">Alan (m²) *</label>
       <input
         type="number"
