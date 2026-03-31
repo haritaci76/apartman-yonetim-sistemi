@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 // Supabase bağlantı ayarları
-const supabaseUrl = "BURAYA_SUPABASE_URL_GELECEK";
+const supabaseUrl = "https://drffiolzmavwbbsulplb.supabase.co";
 const supabaseKey = "sb_publishable_SNCUbKXAIu3jijB2hK4GIQ_o2klAx5A";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
